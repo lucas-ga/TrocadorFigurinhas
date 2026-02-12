@@ -1,0 +1,230 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USUÁRIOS ====================
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String
+  nickname      String    @unique
+  phone         String?
+  city          String?
+  state         String?
+  avatarUrl     String?
+  bio           String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  isActive      Boolean   @default(true)
+  isVerified    Boolean   @default(false)
+  
+  // Relações
+  ownedStickers     UserSticker[]
+  wantedStickers    UserWantedSticker[]
+  sentTrades        Trade[]       @relation("SentTrades")
+  receivedTrades    Trade[]       @relation("ReceivedTrades")
+  givenRatings      Rating[]      @relation("GivenRatings")
+  receivedRatings   Rating[]      @relation("ReceivedRatings")
+  notifications     Notification[]
+  
+  @@map("users")
+}
+
+// ==================== ÁLBUNS ====================
+model Album {
+  id          String    @id @default(cuid())
+  name        String
+  year        Int
+  description String?
+  coverUrl    String?
+  totalCards  Int
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  
+  // Relações
+  sections    Section[]
+  stickers    Sticker[]
+  
+  @@map("albums")
+}
+
+// ==================== SEÇÕES DO ÁLBUM ====================
+model Section {
+  id          String    @id @default(cuid())
+  albumId     String
+  name        String    // Ex: "Brasil", "Argentina", "Estádios", etc.
+  code        String    // Ex: "BRA", "ARG", "FWC"
+  orderIndex  Int
+  
+  // Relações
+  album       Album     @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  stickers    Sticker[]
+  
+  @@map("sections")
+}
+
+// ==================== FIGURINHAS ====================
+model Sticker {
+  id          String    @id @default(cuid())
+  albumId     String
+  sectionId   String
+  code        String    // Ex: "BRA 1", "ARG 5"
+  name        String    // Nome do jogador ou descrição
+  number      Int       // Número da figurinha
+  imageUrl    String?
+  rarity      Rarity    @default(COMMON)
+  isSpecial   Boolean   @default(false) // Legendas, etc.
+  
+  // Relações
+  album           Album       @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  section         Section     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  userStickers    UserSticker[]
+  userWanted      UserWantedSticker[]
+  tradeOffered    TradeItem[] @relation("OfferedStickers")
+  tradeRequested  TradeItem[] @relation("RequestedStickers")
+  
+  @@unique([albumId, number])
+  @@map("stickers")
+}
+
+enum Rarity {
+  COMMON
+  RARE
+  LEGENDARY
+  SPECIAL
+}
+
+// ==================== FIGURINHAS DO USUÁRIO (REPETIDAS) ====================
+model UserSticker {
+  id          String    @id @default(cuid())
+  userId      String
+  stickerId   String
+  quantity    Int       @default(1) // Quantidade de repetidas
+  forTrade    Boolean   @default(true) // Disponível para troca
+  forSale     Boolean   @default(false) // Disponível para venda
+  price       Float?    // Preço se for venda
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relações
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sticker     Sticker   @relation(fields: [stickerId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, stickerId])
+  @@map("user_stickers")
+}
+
+// ==================== FIGURINHAS QUE O USUÁRIO PRECISA ====================
+model UserWantedSticker {
+  id          String    @id @default(cuid())
+  userId      String
+  stickerId   String
+  priority    Int       @default(1) // 1-5, quanto maior mais urgente
+  createdAt   DateTime  @default(now())
+  
+  // Relações
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sticker     Sticker   @relation(fields: [stickerId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, stickerId])
+  @@map("user_wanted_stickers")
+}
+
+// ==================== TROCAS ====================
+model Trade {
+  id              String      @id @default(cuid())
+  senderId        String
+  receiverId      String
+  status          TradeStatus @default(PENDING)
+  message         String?     // Mensagem inicial
+  responseMessage String?     // Resposta
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  completedAt     DateTime?
+  
+  // Relações
+  sender      User        @relation("SentTrades", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    User        @relation("ReceivedTrades", fields: [receiverId], references: [id], onDelete: Cascade)
+  items       TradeItem[]
+  
+  @@map("trades")
+}
+
+enum TradeStatus {
+  PENDING     // Aguardando resposta
+  ACCEPTED    // Aceita
+  REJECTED    // Rejeitada
+  CANCELLED   // Cancelada pelo remetente
+  COMPLETED   // Troca realizada
+  EXPIRED     // Expirou sem resposta
+}
+
+// ==================== ITENS DA TROCA ====================
+model TradeItem {
+  id              String    @id @default(cuid())
+  tradeId         String
+  offeredId       String?   // Figurinha oferecida
+  requestedId     String?   // Figurinha solicitada
+  quantity        Int       @default(1)
+  
+  // Relações
+  trade           Trade     @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  offeredSticker  Sticker?  @relation("OfferedStickers", fields: [offeredId], references: [id])
+  requestedSticker Sticker? @relation("RequestedStickers", fields: [requestedId], references: [id])
+  
+  @@map("trade_items")
+}
+
+// ==================== AVALIAÇÕES ====================
+model Rating {
+  id          String    @id @default(cuid())
+  raterId     String    // Quem avaliou
+  ratedId     String    // Quem foi avaliado
+  tradeId     String?   // Troca relacionada (opcional)
+  score       Int       // 1-5 estrelas
+  comment     String?
+  createdAt   DateTime  @default(now())
+  
+  // Relações
+  rater       User      @relation("GivenRatings", fields: [raterId], references: [id], onDelete: Cascade)
+  rated       User      @relation("ReceivedRatings", fields: [ratedId], references: [id], onDelete: Cascade)
+  
+  @@unique([raterId, ratedId, tradeId])
+  @@map("ratings")
+}
+
+// ==================== NOTIFICAÇÕES ====================
+model Notification {
+  id          String            @id @default(cuid())
+  userId      String
+  type        NotificationType
+  title       String
+  message     String
+  data        Json?             // Dados extras (ex: tradeId)
+  isRead      Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  
+  // Relações
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("notifications")
+}
+
+enum NotificationType {
+  TRADE_RECEIVED      // Recebeu proposta de troca
+  TRADE_ACCEPTED      // Troca aceita
+  TRADE_REJECTED      // Troca rejeitada
+  TRADE_COMPLETED     // Troca concluída
+  MATCH_FOUND         // Match encontrado para figurinha desejada
+  NEW_RATING          // Recebeu nova avaliação
+  SYSTEM              // Notificação do sistema
+}
