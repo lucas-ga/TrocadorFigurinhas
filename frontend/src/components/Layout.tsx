@@ -3,7 +3,7 @@ import { useAuthStore } from '../stores/authStore'
 import { useState, useEffect } from 'react'
 import {
     Menu, X, Home, User, Repeat, Search, Bell, LogOut,
-    BookOpen, ChevronDown
+    BookOpen, ChevronDown, MessageCircle
 } from 'lucide-react'
 import api from '../services/api'
 
@@ -13,6 +13,7 @@ export default function Layout() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
     const [userMenuOpen, setUserMenuOpen] = useState(false)
     const [unreadNotifications, setUnreadNotifications] = useState(0)
+    const [unreadMessages, setUnreadMessages] = useState(0)
 
     useEffect(() => {
         checkAuth()
@@ -32,6 +33,23 @@ export default function Layout() {
             console.error('Error fetching notifications:', error)
         }
     }
+
+    const fetchUnreadMessages = async () => {
+        try {
+            const response = await api.get('/chat/conversations')
+            setUnreadMessages(response.data.unreadCount || 0)
+        } catch (error) {
+            console.error('Error fetching messages:', error)
+        }
+    }
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchUnreadMessages()
+            const interval = setInterval(fetchUnreadMessages, 10000)
+            return () => clearInterval(interval)
+        }
+    }, [isAuthenticated])
 
     const handleLogout = () => {
         logout()
@@ -83,6 +101,16 @@ export default function Layout() {
                         <div className="flex items-center space-x-4">
                             {isAuthenticated ? (
                                 <>
+                                    {/* Messages */}
+                                    <Link to="/chat" className="relative p-2 text-gray-600 hover:text-primary-600">
+                                        <MessageCircle className="w-5 h-5" />
+                                        {unreadMessages > 0 && (
+                                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full text-xs text-white flex items-center justify-center">
+                                                {unreadMessages > 9 ? '9+' : unreadMessages}
+                                            </span>
+                                        )}
+                                    </Link>
+
                                     {/* Notifications */}
                                     <button className="relative p-2 text-gray-600 hover:text-primary-600">
                                         <Bell className="w-5 h-5" />

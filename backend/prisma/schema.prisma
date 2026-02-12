@@ -35,6 +35,9 @@ model User {
   givenRatings      Rating[]      @relation("GivenRatings")
   receivedRatings   Rating[]      @relation("ReceivedRatings")
   notifications     Notification[]
+  conversations1    Conversation[] @relation("User1Conversations")
+  conversations2    Conversation[] @relation("User2Conversations")
+  sentMessages      Message[]      @relation("SentMessages")
   
   @@map("users")
 }
@@ -226,5 +229,38 @@ enum NotificationType {
   TRADE_COMPLETED     // Troca concluída
   MATCH_FOUND         // Match encontrado para figurinha desejada
   NEW_RATING          // Recebeu nova avaliação
+  NEW_MESSAGE         // Nova mensagem recebida
   SYSTEM              // Notificação do sistema
+}
+
+// ==================== CHAT ====================
+model Conversation {
+  id          String    @id @default(cuid())
+  user1Id     String
+  user2Id     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relações
+  user1       User      @relation("User1Conversations", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2       User      @relation("User2Conversations", fields: [user2Id], references: [id], onDelete: Cascade)
+  messages    Message[]
+  
+  @@unique([user1Id, user2Id])
+  @@map("conversations")
+}
+
+model Message {
+  id              String    @id @default(cuid())
+  conversationId  String
+  senderId        String
+  content         String
+  isRead          Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  
+  // Relações
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender          User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  
+  @@map("messages")
 }

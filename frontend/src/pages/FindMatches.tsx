@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
-import { Search, MapPin, Star, Loader2, Users, ArrowRight } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Search, MapPin, Star, Loader2, Users, ArrowRight, MessageCircle } from 'lucide-react'
 import api from '../services/api'
 import type { Match } from '../types'
 
 export default function FindMatches() {
+    const navigate = useNavigate()
     const [filters, setFilters] = useState({
         city: '',
         state: ''
@@ -223,8 +224,12 @@ export default function FindMatches() {
                                     >
                                         Ver Perfil
                                     </Link>
-                                    <button className="btn-primary text-sm">
-                                        Propor Troca
+                                    <button 
+                                        onClick={() => navigate(`/chat/user/${match.user.nickname}`)}
+                                        className="btn-primary text-sm flex items-center gap-1"
+                                    >
+                                        <MessageCircle className="w-4 h-4" />
+                                        Iniciar Chat
                                     </button>
                                 </div>
                             </div>

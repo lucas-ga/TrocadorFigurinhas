@@ -7,6 +7,7 @@ import { stickerRouter } from './routes/sticker.routes.js';
 import { tradeRouter } from './routes/trade.routes.js';
 import { notificationRouter } from './routes/notification.routes.js';
 import { matchRouter } from './routes/match.routes.js';
+import { chatRouter } from './routes/chat.routes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 dotenv.config();
@@ -28,6 +29,7 @@ app.use('/api/stickers', stickerRouter);
 app.use('/api/trades', tradeRouter);
 app.use('/api/notifications', notificationRouter);
 app.use('/api/match', matchRouter);
+app.use('/api/chat', chatRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

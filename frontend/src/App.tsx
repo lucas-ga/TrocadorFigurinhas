@@ -9,6 +9,7 @@ import FindMatches from './pages/FindMatches'
 import Trades from './pages/Trades'
 import Profile from './pages/Profile'
 import UserProfile from './pages/UserProfile'
+import Chat from './pages/Chat'
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -38,6 +39,15 @@ function App() {
                     } />
                     <Route path="profile" element={
                         <ProtectedRoute><Profile /></ProtectedRoute>
+                    } />
+                    <Route path="chat" element={
+                        <ProtectedRoute><Chat /></ProtectedRoute>
+                    } />
+                    <Route path="chat/:conversationId" element={
+                        <ProtectedRoute><Chat /></ProtectedRoute>
+                    } />
+                    <Route path="chat/user/:nickname" element={
+                        <ProtectedRoute><Chat /></ProtectedRoute>
                     } />
                 </Route>
             </Routes>
